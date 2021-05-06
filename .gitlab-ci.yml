@@ -1,0 +1,45 @@
+# .gitlab-ci.yml
+image: docker:git
+
+stages:
+- build
+- deploy
+
+services:
+  - docker:dind
+
+variables:
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_DRIVER: overlay2
+  IMAGE_TAG: ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+  IMAGE_LATEST: ${CI_REGISTRY_IMAGE}:latest
+
+build:
+  stage: build
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - docker build --cache-from ${IMAGE_LATEST} --tag ${IMAGE_TAG} --tag ${IMAGE_LATEST} .
+    - docker push ${IMAGE_TAG}
+    - docker push ${IMAGE_LATEST}
+  only:
+    - master
+
+deploy_production:
+  stage: deploy
+  environment: production
+  script:
+    - mkdir ~/.ssh
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - ssh-keyscan -H $DEPLOYMENT_SERVER >> ~/.ssh/known_hosts
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "echo "$CI_DEPLOY_PASSWORD" | docker login -u $CI_DEPLOY_TOKEN $CI_REGISTRY --password-stdin"
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker stop mqtt_dataiot_ca" || true
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker rm mqtt_dataiot_ca" || true
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker rmi ${IMAGE_TAG}" || true
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker run --name mqtt_dataiot_ca --restart always --network=web -v /opt/environments/dataiot/.env:/var/app/.env -d ${IMAGE_TAG}"
+  only:
+    - master
