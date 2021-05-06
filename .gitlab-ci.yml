@@ -40,6 +40,6 @@ deploy_production:
     - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker stop mqtt_dataiot_ca" || true
     - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker rm mqtt_dataiot_ca" || true
     - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker rmi ${IMAGE_TAG}" || true
-    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker run --name mqtt_dataiot_ca --restart always --network=web -v /opt/environments/dataiot/.env:/var/app/.env -d ${IMAGE_TAG}"
+    - ssh $DEPLOYMENT_USER@$DEPLOYMENT_SERVER "docker run --name mqtt_dataiot_ca --restart always --network=web -v /opt/environments/mqtt-broker-aedes/.env:/var/app/.env -d ${IMAGE_TAG}"
   only:
     - master
