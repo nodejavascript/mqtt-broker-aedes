@@ -20,4 +20,4 @@ COPY ./ /var/app
 EXPOSE 1883
 CMD [ "node", "-r", "esm", "index.js" ]
 
-# LABEL traefik.backend=${CI_ENVIRONMENT_SLUG:-master} traefik.frontend.rule=Host:mqtt.dataiot.ca traefik.docker.network=web traefik.enable=true traefik.port=1883
+LABEL traefik.backend=${CI_ENVIRONMENT_SLUG:-master} traefik.frontend.rule=Host:mqtt.dataiot.ca traefik.docker.network=web traefik.enable=true traefik.port=1883
