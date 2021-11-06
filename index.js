@@ -49,7 +49,6 @@ const startServer = async () => {
     if (username === AEDES_USERNAME && password.toString() === AEDES_PASSWORD) {
       callback(null, true)
     } else {
-      console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m authenticaing FAILED username: ' + AEDES_USERNAME)
       const error = new Error('Auth error')
       error.returnCode = 4
       callback(error)
