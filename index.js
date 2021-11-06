@@ -4,17 +4,17 @@ import mongoose from 'mongoose'
 import mqemitter from 'mqemitter-mongodb'
 import aedesPersistenceMongoDB from 'aedes-persistence-mongodb'
 
-const { AEDES_NAME, AEDES_PORT, AEDES_USERNAME, AEDES_PASSWORD, MAIN_DB_DATABASE, MAIN_DB_USERNAME, MAIN_DB_PASSWORD, MAIN_DB_HOST, MAIN_DB_PORT, MAIN_DB_MAX_CONNECT } = process.env
+const { AEDES_NAME, AEDES_PORT, AEDES_USERNAME, AEDES_PASSWORD, MONGODB_DATABASE, MONGODB_USERNAME, MONGODB_PASSWORD, MONGODB_HOST, MONGODB_PORT, MONGODB_MAX_CONNECT } = process.env
 
 const connect = async () => mongoose.createConnection(
-  `mongodb://${MAIN_DB_USERNAME}:${MAIN_DB_PASSWORD}@${MAIN_DB_HOST}:${MAIN_DB_PORT}/${MAIN_DB_DATABASE}?authSource=admin&retryWrites=true&w=majority`
+  `mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?authSource=admin&retryWrites=true&w=majority`
   ,
   {
     useCreateIndex: true,
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false,
-    serverSelectionTimeoutMS: MAIN_DB_MAX_CONNECT
+    serverSelectionTimeoutMS: MONGODB_MAX_CONNECT
   }
 )
 
