@@ -6,9 +6,11 @@ import aedesPersistenceMongoDB from 'aedes-persistence-mongodb'
 
 const { AEDES_NAME, AEDES_PORT, AEDES_USERNAME, AEDES_PASSWORD, MONGODB_DATABASE, MONGODB_USERNAME, MONGODB_PASSWORD, MONGODB_HOST, MONGODB_PORT, MONGODB_MAX_CONNECT } = process.env
 
+const mongodbUri = `mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?retryWrites=true&w=majority`
+
 const connect = async () => mongoose.createConnection(
-  `mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?authSource=admin&retryWrites=true&w=majority`
-  ,
+  mongodbUri,
+
   {
     useCreateIndex: true,
     useNewUrlParser: true,
