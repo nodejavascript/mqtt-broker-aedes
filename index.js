@@ -1,65 +1,51 @@
 import 'dotenv/config'
-import mongoose from 'mongoose'
-// import cluster from 'cluster'
-import mqemitter from 'mqemitter-mongodb'
-import aedesPersistenceMongoDB from 'aedes-persistence-mongodb'
+import readline from 'readline'
+import net from 'net'
+import { returnAedes } from './aedes'
 
 const {
   NODE_ENV,
+  DISPLAY_TABLE,
   AEDES_PORT,
-  AEDES_NAME,
   AEDES_USERNAME,
-  AEDES_PASSWORD,
-  MONGODB_DATABASE,
-  MONGODB_USERNAME,
-  MONGODB_PASSWORD,
-  MONGODB_HOST,
-  MONGODB_PORT,
-  MONGODB_MAX_CONNECT
+  AEDES_PASSWORD
 } = process.env
 
-const mongodbUri = `mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?retryWrites=true&w=majority`
-
-const connect = async () => mongoose.createConnection(
-  mongodbUri,
-
+const events = [
   {
-    useCreateIndex: true,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false,
-    serverSelectionTimeoutMS: MONGODB_MAX_CONNECT
+    name: 'client',
+    connection: true
+  },
+  {
+    name: 'clientDisconnect',
+    connection: true
+  },
+  {
+    name: 'subscribe'
+  },
+  {
+    name: 'unsubscribe'
+  },
+  {
+    name: 'publish'
   }
-)
+]
+
+let count = 0
 
 const startServer = async () => {
-  const db = await connect()
+  readline.cursorTo(process.stdout, 0, 0)
+  readline.clearScreenDown(process.stdout)
 
-  const aedes = require('aedes')({
-    // id: 'BROKER_' + cluster.Worker().id,
-    id: `${AEDES_NAME}`,
-    persistence: aedesPersistenceMongoDB({
-      db,
-      ttl: {
-        packets: 300, // Number of seconds
-        subscriptions: 300
-      }
-    }),
-    mq: mqemitter({
-      db
-    })
+  const aedes = await returnAedes()
+  const server = net.createServer(aedes.handle)
+
+  server.listen(AEDES_PORT, () => {
+    console.log(`AEDES_PORT: ${AEDES_PORT}`)
+    aedes.publish({ topic: 'mqttserver', payload: "I'm broker " + aedes.id })
   })
 
-  const server = require('net').createServer(aedes.handle)
-
-  server.listen(AEDES_PORT, function () {
-    console.log('Aedes listening on port:', AEDES_PORT)
-    aedes.publish({ topic: 'aedes/hello', payload: "I'm broker " + aedes.id })
-  })
-
-  aedes.authenticate = function (client, username, password, callback) {
-    console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m authenticating username: ' + AEDES_USERNAME)
-
+  aedes.authenticate = (client, username, password, callback) => {
     if (username === AEDES_USERNAME && password.toString() === AEDES_PASSWORD) {
       callback(null, true)
     } else {
@@ -69,28 +55,81 @@ const startServer = async () => {
     }
   }
 
-  aedes.on('subscribe', function (subscriptions, client) {
-    console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m subscribed to topics: ' + subscriptions.map(s => s.topic).join('\n'), 'from broker', aedes.id)
-  })
+  events.filter(i => i.connection).forEach(event => aedes.on(event.name, client => handleEvent(aedes, { event, client })))
+  events.filter(i => !i.connection).forEach(event => aedes.on(event.name, (args, client) => handleEvent(aedes, { event, args, client })))
+}
 
-  aedes.on('unsubscribe', function (subscriptions, client) {
-    console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m unsubscribed to topics: ' + subscriptions.join('\n'), 'from broker', aedes.id)
-  })
+const handleEvent = (aedes, { event, args, client }) => {
+  if (!NODE_ENV === 'local') return
 
-  // fired when a client connects
-  aedes.on('client', function (client) {
-    console.log('Client Connected: \x1b[33m' + (client ? client.id : client) + '\x1b[0m', 'to broker', aedes.id)
-  })
+  count += 1
 
-  // fired when a client disconnects
-  aedes.on('clientDisconnect', function (client) {
-    console.log('Client Disconnected: \x1b[31m' + (client ? client.id : client) + '\x1b[0m', 'to broker', aedes.id)
-  })
+  // clears terminal so table appears reactive
+  if (DISPLAY_TABLE) {
+    readline.cursorTo(process.stdout, 0, 0)
+    readline.clearScreenDown(process.stdout)
+  }
 
-  // fired when a message is published
-  aedes.on('publish', async function (packet, client) {
-    console.log('Client \x1b[31m' + (client ? client.id : 'BROKER_' + aedes.id) + '\x1b[0m has published', packet.payload.toString(), 'on', packet.topic, 'to broker', aedes.id)
-  })
+  const display = {
+    event: event.name,
+    count: count,
+    now: (new Date()).toISOString(),
+    aedes: `${aedes.id}`
+  }
+
+  if (client) display.client = client.id
+
+  if (args && args.topic) display.topic = args.topic
+
+  let payload
+
+  if (['publish'].includes(event.name)) {
+    display.payloadSize = `${args.payload.toString().length} char(s)`
+    // console.log('args.payload', args.payload.toString())
+    payload = args.payload.toString()
+  }
+
+  if (['subscribe', 'unsubscribe'].includes(event.name.toString())) display.topics = args.map(s => s.topic).length
+
+  DISPLAY_TABLE && console.table(display)
+
+  if (!DISPLAY_TABLE) {
+    const { event, count, now, topic, client } = display
+
+    let output = `\n\n----${event}---- ${count}\n${now}`
+    if (client) output += `\nclient: ${client}`
+    if (payload) output += `\ntopic: ${topic}\n${payload}`
+
+    console.log(output)
+  }
 }
 
 startServer()
+
+// console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m authenticating username: ' + AEDES_USERNAME + '\n\n')
+
+// aedes.on('subscribe', function (args, client) {
+//   handleNoClient({ args, client })
+//   console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m subscribed to topics: ' + args.map(s => s.topic).join('\n'), 'from broker', aedes.id)
+// })
+//
+// aedes.on('unsubscribe', function (subscriptions, client) {
+//   handleNoClient({ subscriptions, client })
+//   console.log('MQTT client \x1b[32m' + (client ? client.id : client) + '\x1b[0m unsubscribed to topics: ' + subscriptions.join('\n'), 'from broker', aedes.id)
+// })
+//
+// // fired when a client connects
+// aedes.on('client', function (client) {
+//   handleNoClient({ client })
+//   console.log('Client Connected: \x1b[33m' + (client ? client.id : client) + '\x1b[0m', 'to broker', aedes.id)
+// })
+//
+// aedes.on('clientDisconnect', function (client) {
+//   handleNoClient({ client })
+//   console.log('Client Disconnected: \x1b[31m' + (client ? client.id : client) + '\x1b[0m', 'to broker', aedes.id)
+// })
+//
+// aedes.on('publish', async function (args, client) {
+//   handleNoClient({ args, client })
+//   console.log('Client \x1b[31m' + (client ? client.id : 'BROKER_' + aedes.id) + '\x1b[0m has published', args.payload.toString().length, 'on', args.topic, 'to broker', aedes.id)
+// })
