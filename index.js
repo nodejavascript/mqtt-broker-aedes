@@ -4,7 +4,19 @@ import mongoose from 'mongoose'
 import mqemitter from 'mqemitter-mongodb'
 import aedesPersistenceMongoDB from 'aedes-persistence-mongodb'
 
-const { AEDES_NAME, AEDES_PORT, AEDES_USERNAME, AEDES_PASSWORD, MONGODB_DATABASE, MONGODB_USERNAME, MONGODB_PASSWORD, MONGODB_HOST, MONGODB_PORT, MONGODB_MAX_CONNECT } = process.env
+const {
+  NODE_ENV,
+  AEDES_PORT,
+  AEDES_NAME,
+  AEDES_USERNAME,
+  AEDES_PASSWORD,
+  MONGODB_DATABASE,
+  MONGODB_USERNAME,
+  MONGODB_PASSWORD,
+  MONGODB_HOST,
+  MONGODB_PORT,
+  MONGODB_MAX_CONNECT
+} = process.env
 
 const mongodbUri = `mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}?retryWrites=true&w=majority`
 
