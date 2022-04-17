@@ -3,6 +3,8 @@ import mongoose from 'mongoose'
 import mqemitter from 'mqemitter-mongodb'
 import aedesPersistenceMongoDB from 'aedes-persistence-mongodb'
 import aedes from 'aedes'
+import { Level } from 'level'
+import aedesPersistencelevel from 'aedes-persistence-level'
 
 const {
   AEDES_BROKER_NAME,
@@ -29,16 +31,7 @@ export const returnAedes = async () => {
     */
 
     id: AEDES_BROKER_NAME,
-    persistence: aedesPersistenceMongoDB({
-      db,
-      ttl: {
-        packets: 300, // Number of seconds
-        subscriptions: 300
-      }
-    }),
-    mq: mqemitter({
-      db
-    })
+    persistence: aedesPersistencelevel(new Level('./mydb'))
   })
 }
 
