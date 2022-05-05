@@ -1,21 +1,24 @@
-# Dockerfile
+# Docker image
 FROM node:14-alpine
 
-# put the app in the right folder
-RUN mkdir -p /var/app
-WORKDIR /var/app
+# Copy package.json and package-lock.json to a temporary folder
+COPY ./package*.json /modules/
 
-# Install app dependencies
-# A wildcard is used to ensure both package.json AND package-lock.json are copied
-# where available (npm@5+)
-COPY ./package*.json /var/app/
-
-# RUN npm install
-# If you are building your code for production
+# Install the node modules in the temporary folder
+WORKDIR /modules
 RUN npm i --only=production
 
-# Bundle app source
-COPY ./ /var/app
+# Set the app path
+WORKDIR /app
 
-EXPOSE 1883
+# Copy the app
+COPY . .
+
+# Removes the node_modules directory that may exist when building on a local machine
+RUN rm -rf /app/node_modules
+
+# Moves the previously created node_modules directory into the app folder
+RUN mv /modules/node_modules /app
+
+# The port is exposed in gitlab-ci.yml
 CMD [ "node", "-r", "esm", "index.js" ]
