@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon -r esm index.js",
+    "start": "nodemon --quiet -r esm index.js",
     "test": "standard  --verbose",
     "docker": "docker rm -f mqtt-broker-aedes; docker build . -t mqtt-broker-aedes; docker run --restart always -p 1883:1883 --network web -d --name mqtt-broker-aedes mqtt-broker-aedes"
   },
@@ -20,6 +20,7 @@
     "aedes-persistence-level": "^8.0.0",
     "dotenv": "^9.0.2",
     "esm": "^3.2.25",
+    "express": "^4.18.1",
     "level": "^8.0.0",
     "mqemitter": "^4.5.0",
     "prom-client": "^14.0.1",

@@ -1,10 +1,10 @@
 import 'dotenv/config'
 import net from 'net'
 import { returnAedes } from './aedes'
-import { clearStdout } from './readline'
 import { handleEvent } from './events'
 
 const {
+  AEDES_BROKER_NAME,
   AEDES_PORT,
   AEDES_USERNAME,
   AEDES_PASSWORD
@@ -36,10 +36,9 @@ export const startBroker = async () => {
   const server = net.createServer(aedes.handle)
 
   server.listen(AEDES_PORT, () => {
-    clearStdout(process)
     console.log(`Aedes is running on port ${AEDES_PORT}`)
 
-    aedes.publish({ topic: '💖 Happy Birthday! ☃️', payload: `${aedes.id}, broker I am.` })
+    aedes.publish({ client: AEDES_BROKER_NAME, topic: '💖 Happy Birthday! ☃️', payload: `${aedes.id}, broker I am.` })
   })
 
   aedes.authenticate = (client, username, password, callback) => {
