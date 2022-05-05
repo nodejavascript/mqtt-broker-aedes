@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --quiet -r esm index.js",
     "test": "standard  --verbose",
-    "docker": "docker rm -f mqtt-broker-aedes; docker build . -t mqtt-broker-aedes; docker run --restart always -p 1883:1883 --network web -d --name mqtt-broker-aedes mqtt-broker-aedes"
+    "docker": "docker rm -f mqtt-broker-aedes; docker build . -t mqtt-broker-aedes; docker run --restart always -p 1883:1883 -p 9091:9091 --network web -d --name mqtt-broker-aedes mqtt-broker-aedes"
   },
   "repository": {
     "type": "git",
