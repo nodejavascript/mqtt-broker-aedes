@@ -1,7 +1,6 @@
-import { Aedes, Client } from 'aedes'
+import type Aedes from 'aedes'
+import type { Client } from 'aedes'
 import { clearStdout } from './readline'
-
-const { NODE_ENV, DISPLAY_TABLE } = process.env
 
 interface EventMeta {
   name: string
@@ -17,6 +16,9 @@ interface EventContext {
 let count = 0
 
 export function handleEvent (broker: Aedes, { event, args, client }: EventContext): void {
+  const NODE_ENV = process.env.NODE_ENV
+  const DISPLAY_TABLE = process.env.DISPLAY_TABLE
+
   // Only log when running locally (fixed: original `!NODE_ENV === 'local'`
   // evaluated `(!NODE_ENV) === 'local'`, which is always false).
   if (NODE_ENV !== 'local') return
@@ -41,12 +43,10 @@ export function handleEvent (broker: Aedes, { event, args, client }: EventContex
 
   let payload: string | undefined
 
-  if (event.name === 'publish') {
-    if (args && args.payload != null) {
-      const text = Buffer.from(args.payload).toString()
-      display.payloadSize = `${text.length} char(s)`
-      payload = text
-    }
+  if (event.name === 'publish' && args && args.payload != null) {
+    const text = Buffer.from(args.payload).toString()
+    display.payloadSize = `${text.length} char(s)`
+    payload = text
   }
 
   if (DISPLAY_TABLE) {

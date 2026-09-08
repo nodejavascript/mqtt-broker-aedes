@@ -15,6 +15,9 @@ npm install
 cp .env.example .env   # then edit the values
 ```
 
+> **Note:** `.npmrc` sets `legacy-peer-deps=true` to work around an npm 10
+> Arborist bug when resolving Vitest's peer set.
+
 ## Environment variables
 
 | Variable             | Default     | Description                                  |
@@ -25,6 +28,7 @@ cp .env.example .env   # then edit the values
 | `AEDES_BROKER_NAME`  | `aedesname` | Broker id                                    |
 | `AEDES_USERNAME`     | `aedesuser` | Username clients must authenticate with      |
 | `AEDES_PASSWORD`     | (empty)     | Password clients must authenticate with      |
+| `AEDES_DB_PATH`      | `./mydb`    | LevelDB persistence directory                |
 
 ## Scripts
 
@@ -33,6 +37,9 @@ npm run dev        # run with ts-node + nodemon (auto-reload)
 npm run build      # compile TypeScript to ./dist
 npm start          # run the compiled output (node dist/index.js)
 npm run typecheck  # type-check without emitting
+npm test           # run unit + end-to-end tests
+npm run test:unit  # unit tests only
+npm run test:e2e   # end-to-end tests only (spins up a real broker + MQTT client)
 ```
 
 ## Docker
