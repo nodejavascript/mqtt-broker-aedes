@@ -21,7 +21,36 @@ TypeScript, with unit + end-to-end tests, and packaged for Docker and Docker Com
 
 ---
 
-## Run with Docker Compose
+## Run without cloning (prebuilt image)
+
+A prebuilt multi-arch image (`linux/amd64` + `linux/arm64`) is published to
+[GitHub Container Registry](https://github.com/nodejavascript/mqtt-broker-aedes/pkgs/container/mqtt-broker-aedes)
+on every push to `master`.
+
+```yaml
+services:
+  mqtt-broker:
+    image: ghcr.io/nodejavascript/mqtt-broker-aedes:latest
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    environment:
+      NODE_ENV: production
+      AEDES_USERNAME: aedesuser
+      AEDES_PASSWORD: changeme   # ⚠ change this
+      AEDES_DB_PATH: /app/mydb
+    volumes:
+      - mqtt-data:/app/mydb      # persist the LevelDB store
+
+volumes:
+  mqtt-data:
+```
+
+Then `docker compose up -d`.
+
+---
+
+## Run with Docker Compose (build from source)
 
 ### Standalone (inside this repo)
 
