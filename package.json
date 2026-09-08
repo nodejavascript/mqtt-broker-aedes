@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@gitlab.com:datavisionstudios/mqtt-broker-aedes.git"
+    "url": "https://github.com/nodejavascript/mqtt-broker-aedes.git"
   },
   "keywords": ["mqtt", "aedes", "broker"],
   "author": "",
