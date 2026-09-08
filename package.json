@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:unit": "vitest run test/unit",
     "test:e2e": "vitest run test/e2e",
-    "docker": "npm run build && docker rm -f mqtt-broker-aedes; docker build . -t mqtt-broker-aedes; docker run --restart always -p 1883:1883 --network web -d --name mqtt-broker-aedes mqtt-broker-aedes"
+    "docker": "docker compose up -d --build",
+    "docker:down": "docker compose down"
   },
   "repository": {
     "type": "git",

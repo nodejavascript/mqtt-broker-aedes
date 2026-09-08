@@ -1,0 +1,23 @@
+services:
+  mqtt-broker:
+    build: .
+    image: mqtt-broker-aedes:latest
+    container_name: mqtt-broker-aedes
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    environment:
+      NODE_ENV: production
+      AEDES_PORT: "1883"
+      AEDES_BROKER_NAME: aedesname
+      AEDES_USERNAME: aedesuser
+      # ⚠ Change this password before exposing the broker.
+      AEDES_PASSWORD: changeme
+      # Matches the mounted volume below.
+      AEDES_DB_PATH: /app/mydb
+    volumes:
+      # Persist the LevelDB store across container recreation.
+      - mqtt-data:/app/mydb
+
+volumes:
+  mqtt-data:

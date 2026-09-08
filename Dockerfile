@@ -4,7 +4,7 @@ FROM node:20-alpine AS build
 WORKDIR /app
 
 # Install all dependencies (incl. dev) to compile TypeScript
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN npm ci
 
 COPY tsconfig.json ./
@@ -20,7 +20,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 
 # Install production dependencies only
-COPY package*.json ./
+COPY package*.json .npmrc ./
 RUN npm ci --omit=dev
 
 # Copy the compiled output
