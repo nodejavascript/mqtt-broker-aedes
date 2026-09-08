@@ -1,15 +1,15 @@
 import 'dotenv/config'
-import aedes from 'aedes'
+import aedes, { Aedes } from 'aedes'
 import { Level } from 'level'
-import aedesPersistencelevel from 'aedes-persistence-level'
+import aedesPersistenceLevel from 'aedes-persistence-level'
 import mqemitter from 'mqemitter'
 
 const { AEDES_BROKER_NAME } = process.env
 
-export const returnAedes = async () => {
+export async function returnAedes (): Promise<Aedes> {
   return aedes({
     id: AEDES_BROKER_NAME,
-    persistence: aedesPersistencelevel(new Level('./mydb')),
+    persistence: aedesPersistenceLevel(new Level('./mydb')),
     mq: mqemitter({
       concurrency: 500,
       matchEmptyLevels: true // [MQTT-4.7.1-3]

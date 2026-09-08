@@ -1,24 +1,34 @@
-# Docker image
-FROM node:14-alpine
+# ---- build stage ----
+FROM node:20-alpine AS build
 
-# Copy package.json and package-lock.json to a temporary folder
-COPY ./package*.json /modules/
-
-# Install the node modules in the temporary folder
-WORKDIR /modules
-RUN npm i --only=production
-
-# Set the app path
 WORKDIR /app
 
-# Copy the app
-COPY . .
+# Install all dependencies (incl. dev) to compile TypeScript
+COPY package*.json ./
+RUN npm ci
 
-# Removes the node_modules directory that may exist when building on a local machine
-RUN rm -rf /app/node_modules
+COPY tsconfig.json ./
+COPY index.ts ./
+COPY src ./src
+RUN npm run build
 
-# Moves the previously created node_modules directory into the app folder
-RUN mv /modules/node_modules /app
+# ---- runtime stage ----
+FROM node:20-alpine
 
-# The port is exposed in gitlab-ci.yml
-CMD [ "node", "-r", "esm", "index.js" ]
+ENV NODE_ENV=production
+
+WORKDIR /app
+
+# Install production dependencies only
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+# Copy the compiled output
+COPY --from=build /app/dist ./dist
+
+# Persist the LevelDB store across container restarts
+VOLUME ["/app/mydb"]
+
+EXPOSE 1883
+
+CMD [ "node", "dist/index.js" ]
