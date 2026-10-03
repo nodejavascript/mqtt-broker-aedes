@@ -1,5 +1,11 @@
 # mqtt-broker-aedes
 
+A broker is plumbing, and plumbing should be quiet. This one is small enough to read: the broker itself is a few TypeScript files over [Aedes](https://github.com/moscajs/aedes), it keeps its state in LevelDB, and it carries unit and end-to-end tests so a change to it can be trusted rather than hoped for.
+
+**What is here:** `index.ts` and `src/` are the broker · `test/` is the suite (`vitest.config.ts`) · `Dockerfile` and `docker-compose.yml` run it · `.env.example` carries the credentials and the port.
+
+---
+
 A small, self-contained MQTT broker built on [Aedes](https://github.com/moscajs/aedes),
 with LevelDB persistence and username/password authentication. Written in
 TypeScript, with unit + end-to-end tests, and packaged for Docker and Docker Compose.
