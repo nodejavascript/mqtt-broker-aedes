@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/mqtt-logo.png" alt="MQTT" width="320">
+</p>
+
 # mqtt-broker-aedes
 
 A broker is plumbing, and plumbing should be quiet. This one is small enough to read.
@@ -307,6 +311,9 @@ npm test
 │   ├── unit/
 │   ├── integration/
 │   └── e2e/
+├── docs/
+│   ├── mqtt-logo.png     # the MQTT mark used above
+│   └── mqtt-logo@2x.png  # the same, for retina displays
 ├── .github/workflows/
 │   ├── ci.yml            # typecheck, build, tests, production audit
 │   └── docker-publish.yml # GHCR image on push to master
@@ -328,6 +335,10 @@ npm test
   file already does) so data survives container recreation.
 - If the build fails on a machine with two network connections, check that the Docker DNS is
   pointed at an online connection — npm can fail if it resolves to an offline NIC.
+- The MQTT logo in `docs/` belongs to OASIS, which publishes the MQTT specification. It is
+  used here to say what the broker speaks, not to claim any endorsement — this project is an
+  independent implementation over [Aedes](https://github.com/moscajs/aedes) and is not
+  affiliated with OASIS.
 
 ## Upgrading from 1.x
 

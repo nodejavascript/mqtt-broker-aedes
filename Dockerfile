@@ -17,6 +17,15 @@ FROM node:22-alpine
 
 ENV NODE_ENV=production
 
+# Shown by the registry and by `docker inspect`, so an image in the wild can say what it is
+# and where it came from without anyone having to guess.
+LABEL org.opencontainers.image.title="mqtt-broker-aedes" \
+      org.opencontainers.image.description="A small MQTT broker over Aedes, with LevelDB persistence — it keeps its data on a disk you own and never quietly drops a message." \
+      org.opencontainers.image.source="https://github.com/nodejavascript/mqtt-broker-aedes" \
+      org.opencontainers.image.url="https://github.com/nodejavascript/mqtt-broker-aedes" \
+      org.opencontainers.image.documentation="https://github.com/nodejavascript/mqtt-broker-aedes#readme" \
+      org.opencontainers.image.licenses="ISC"
+
 WORKDIR /app
 
 # Install production dependencies only
