@@ -39,6 +39,13 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          # metadata-action overwrites any label it has an opinion about, so the
+          # description and the licence are set here or they are lost. Everything else
+          # (revision, created, version, source, url) it derives itself.
+          labels: |
+            org.opencontainers.image.title=mqtt-broker-aedes
+            org.opencontainers.image.description=A small MQTT broker over Aedes, with LevelDB persistence - it keeps its data on a disk you own and never quietly drops a message.
+            org.opencontainers.image.licenses=ISC
           tags: |
             type=raw,value=latest,enable={{is_default_branch}}
             type=ref,event=branch
