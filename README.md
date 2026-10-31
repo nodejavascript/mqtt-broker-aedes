@@ -1,29 +1,28 @@
 # mqtt-broker-aedes
 
-A broker is plumbing, and plumbing should be quiet. This one is small enough to read: the broker itself is a few TypeScript files over [Aedes](https://github.com/moscajs/aedes), it keeps its state in LevelDB, and it carries unit and end-to-end tests so a change to it can be trusted rather than hoped for.
+A broker is plumbing, and plumbing should be quiet. This one is small enough to read.
 
-**What is here:** `index.ts` and `src/` are the broker · `test/` is the suite (`vitest.config.ts`) · `Dockerfile` and `docker-compose.yml` run it · `.env.example` carries the credentials and the port.
+**A message broker should be small enough to read in an afternoon, keep its data on a disk
+you own, and never quietly drop a message.**
+
+That is the whole belief, and it constrains what this will not do: it will never become a
+managed cloud service, it will never require an account to talk to it, it will never phone
+home with telemetry, and its persistence will never live somewhere you cannot see. What it
+does — carry MQTT between your own devices — is only the proof that the belief holds.
+
+**What is here:** `index.ts` and `src/` are the broker · `test/` is the suite
+(`vitest.config.mts`, 101 tests) · `Dockerfile` and `docker-compose.yml` run it ·
+`.env.example` carries the credentials and the port.
+
+It is built on [Aedes](https://github.com/moscajs/aedes), written in TypeScript, with LevelDB
+persistence and username/password authentication.
 
 ---
-
-A small, self-contained MQTT broker built on [Aedes](https://github.com/moscajs/aedes),
-with LevelDB persistence and username/password authentication. Written in
-TypeScript, with unit + end-to-end tests, and packaged for Docker and Docker Compose.
-
-## Features
-
-- MQTT 3.1.1 / 5.0 via Aedes
-- LevelDB persistence — subscriptions and retained/queued messages survive restarts
-- Username/password authentication
-- Optional live event log in the terminal (`DISPLAY_TABLE=true`)
-- TypeScript (strict mode), compiled to CommonJS
-- Vitest unit + end-to-end tests
-- Multi-stage Docker image (Node 20 Alpine)
 
 ## Requirements
 
 - **Docker** + **Docker Compose v2** (recommended), or
-- **Node.js 18+** (20+ recommended) and npm for local development
+- **Node.js 22+** and npm for local development
 
 ---
 
@@ -113,34 +112,44 @@ docker run --restart unless-stopped \
 ```bash
 npm install
 cp .env.example .env   # then edit the values
-npm run dev            # ts-node + nodemon, auto-reload
+npm run dev            # tsx watch — restarts on every save
 ```
 
-> **Note:** `.npmrc` sets `legacy-peer-deps=true` to work around an npm 10
-> Arborist bug when resolving Vitest's peer set.
+`npm run dev` runs the TypeScript source directly through
+[tsx](https://github.com/privatenumber/tsx), so there is no separate compile step while you
+work. `npm run build` produces `dist/` for `npm start` and for the container.
 
 ## Environment variables
 
-| Variable            | Default     | Description                                  |
-| ------------------- | ----------- | -------------------------------------------- |
-| `NODE_ENV`          | `local`     | Event logging only runs when set to `local`  |
-| `DISPLAY_TABLE`     | (unset)     | `true` renders the event log as a live table |
-| `AEDES_PORT`        | `1883`      | Port the broker listens on                   |
-| `AEDES_BROKER_NAME` | `aedesname` | Broker id                                    |
-| `AEDES_USERNAME`    | `aedesuser` | Username clients must authenticate with      |
-| `AEDES_PASSWORD`    | (empty)     | Password clients must authenticate with      |
-| `AEDES_DB_PATH`     | `./mydb`    | LevelDB persistence directory                |
+| Variable            | Default     | Description                                        |
+| ------------------- | ----------- | -------------------------------------------------- |
+| `NODE_ENV`          | `local`     | Event logging only runs when set to `local`        |
+| `DISPLAY_TABLE`     | (unset)     | `true` renders the event log as a live table       |
+| `AEDES_PORT`        | `1883`      | Port the broker listens on                         |
+| `AEDES_BROKER_NAME` | `aedesname` | Broker id (a random one is generated when unset)   |
+| `AEDES_USERNAME`    | `aedesuser` | Username clients must authenticate with            |
+| `AEDES_PASSWORD`    | (empty)     | Password clients must authenticate with            |
+| `AEDES_DB_PATH`     | `./mydb`    | LevelDB persistence directory                      |
+| `AEDES_CONCURRENCY` | `500`       | Message-queue concurrency                          |
+
+`AEDES_PORT`, `AEDES_CONCURRENCY` and `DISPLAY_TABLE` are validated at startup: a bad port or
+a non-positive concurrency stops the process with an error instead of listening somewhere
+unexpected. `DISPLAY_TABLE` accepts `true`, `1`, `yes` or `on`; anything else — including the
+literal word `false` — turns the table off.
 
 ## Scripts
 
 ```bash
-npm run dev        # run with ts-node + nodemon (auto-reload)
-npm run build      # compile TypeScript to ./dist
-npm start          # run the compiled output (node dist/index.js)
-npm run typecheck  # type-check without emitting
-npm test           # run unit + end-to-end tests
-npm run test:unit  # unit tests only
-npm run test:e2e   # end-to-end tests only (spins up a real broker + MQTT client)
+npm run dev                # tsx watch, restarts on save
+npm run build              # compile TypeScript to ./dist
+npm run clean              # remove ./dist
+npm start                  # run the compiled output (node dist/index.js)
+npm run typecheck          # type-check source AND tests
+npm test                   # all 101 tests
+npm run test:unit          # unit tests only
+npm run test:integration   # broker construction, no network
+npm run test:e2e           # real broker over TCP + a real MQTT client
+npm run test:watch         # re-run on change
 ```
 
 ## Testing
@@ -149,35 +158,64 @@ npm run test:e2e   # end-to-end tests only (spins up a real broker + MQTT client
 npm test
 ```
 
-- **Unit tests** (`test/unit`) — the event logger and the terminal-clearing helper.
-- **End-to-end tests** (`test/e2e`) — boot a real broker on an ephemeral port,
-  connect a real MQTT client, verify a message round-trips, and verify a wrong
-  password is rejected.
+101 tests across three layers:
+
+| Layer | File | What it proves |
+| --- | --- | --- |
+| unit | `test/unit/config.test.ts` | every environment value parses, and a bad one throws instead of defaulting silently |
+| unit | `test/unit/auth.test.ts` | matching credentials pass, anything else gets CONNACK code 4, and each rejection is a fresh error |
+| unit | `test/unit/events.test.ts` | the event log, the counter, table vs text output, and that non-local runs stay silent |
+| unit | `test/unit/readline.test.ts` | the terminal helper clears in the right order |
+| integration | `test/integration/aedes.test.ts` | broker construction, persistence wiring, in-process delivery, close |
+| e2e | `test/e2e/broker.e2e.test.ts` | auth accept/reject, QoS 0/1/2, `+` and `#` wildcards, retained messages and their clearing, unsubscribe, fan-out, binary and 64 KiB payloads, client counts and lifecycle events |
+| e2e | `test/e2e/start.e2e.test.ts` | ephemeral and fixed ports, a taken port rejecting, quiet mode, idempotent close, and that a closed broker stops accepting connections |
 
 ## Project structure
 
 ```
 .
-├── index.ts              # entry point
+├── index.ts              # entry point — start, then shut down cleanly on SIGINT/SIGTERM
 ├── src/
-│   ├── aedes.ts          # broker construction (persistence + mq)
+│   ├── aedes.ts          # broker construction (persistence + message queue)
+│   ├── auth.ts           # credential matching and the authenticate handler
+│   ├── config.ts         # environment parsing and validation
 │   ├── events.ts         # event logging
 │   ├── index.ts          # server + auth + event wiring
 │   ├── readline.ts       # terminal helper
 │   └── types.d.ts        # ambient types for untyped deps
 ├── test/
 │   ├── unit/
+│   ├── integration/
 │   └── e2e/
-├── Dockerfile            # multi-stage build (Node 20 Alpine)
+├── Dockerfile            # multi-stage build (Node 22 Alpine)
 ├── docker-compose.yml
-└── tsconfig.json
+├── tsconfig.json         # source build
+└── tsconfig.test.json    # tests, type-checked but never emitted
 ```
 
 ## Notes
 
 - Authentication uses a single shared username/password (`aedes.authenticate`).
-- Persistence lives in `/app/mydb` inside the container — mount a volume there
-  (the compose file already does) so data survives container recreation.
-- If the build fails on a machine with two network connections, check that the
-  Docker DNS is pointed at an online connection — npm can fail if it resolves to
-  an offline NIC.
+  **An unset `AEDES_USERNAME` or `AEDES_PASSWORD` matches an unset client value**, so a broker
+  with neither configured accepts anonymous clients. That has always been its behaviour and
+  the tests state it plainly — configure both before exposing the broker.
+- The broker speaks MQTT 3.1.1 and 5.0. Clients that send a bad username or password receive
+  CONNACK return code 4.
+- Persistence lives in `/app/mydb` inside the container — mount a volume there (the compose
+  file already does) so data survives container recreation.
+- If the build fails on a machine with two network connections, check that the Docker DNS is
+  pointed at an online connection — npm can fail if it resolves to an offline NIC.
+
+## Upgrading from 1.x
+
+Version 2.0 moved to **aedes 1.x**, which changed three things that matter here:
+
+- the broker is exported as a named `Aedes` class, not a default export;
+- brokers must be created with `Aedes.createBroker()`, which also runs `listen()` — a bare
+  `new Aedes()` skips it and is deprecated in aedes itself;
+- the bundled persistence peers (`aedes-persistence-level` and friends) are declared optional,
+  so `aedes-persistence-level` has to be a direct dependency, which it already is.
+
+Tooling moved with it: TypeScript 7 (`module`/`moduleResolution` are now `nodenext`),
+Node 22 as the minimum, `tsx` in place of `ts-node` + `nodemon`, and the `legacy-peer-deps`
+workaround in `.npmrc` is gone because the peer set now resolves cleanly.

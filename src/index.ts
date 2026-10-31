@@ -1,10 +1,22 @@
 import 'dotenv/config'
 import net from 'net'
-import Aedes from 'aedes'
-import type { AuthenticateError, Client } from 'aedes'
+import type { Aedes } from 'aedes'
+import type { Client } from 'aedes'
 import { returnAedes } from './aedes'
+import { createAuthHandler } from './auth'
+import { readConfig } from './config'
+import type { BrokerConfig } from './config'
 import { clearStdout } from './readline'
 import { handleEvent } from './events'
+
+export interface StartOptions {
+  /** Overrides `AEDES_PORT`. 0 asks the OS for a free port. */
+  port?: number
+  /** Overrides everything read from the environment. */
+  config?: BrokerConfig
+  /** Announce the port on stdout. Off in tests. */
+  quiet?: boolean
+}
 
 export interface StartedBroker {
   broker: Aedes
@@ -13,26 +25,20 @@ export interface StartedBroker {
   close: () => Promise<void>
 }
 
-export async function startBroker (portOverride?: number): Promise<StartedBroker> {
-  const { AEDES_PORT, AEDES_USERNAME, AEDES_PASSWORD } = process.env
+const BIRTHDAY_TOPIC = '💖 Happy Birthday! ☃️'
 
-  const broker = await returnAedes()
+export async function startBroker (options: number | StartOptions = {}): Promise<StartedBroker> {
+  const opts: StartOptions = typeof options === 'number' ? { port: options } : options
+  const config = opts.config ?? readConfig()
+
+  const broker = await returnAedes(config)
   const server = net.createServer(broker.handle)
-  const requestedPort = portOverride ?? Number(AEDES_PORT ?? 1883)
+  const requestedPort = opts.port ?? config.port
 
-  broker.authenticate = (client, username, password, done) => {
-    const usernameMatches = username === AEDES_USERNAME
-    const passwordMatches = password?.toString() === AEDES_PASSWORD
-
-    if (usernameMatches && passwordMatches) {
-      done(null, true)
-    } else {
-      const error = Object.assign(new Error('Auth error'), {
-        returnCode: 4 // MQTT CONNACK: bad username or password
-      }) as AuthenticateError
-      done(error, null)
-    }
-  }
+  broker.authenticate = createAuthHandler({
+    username: config.username,
+    password: config.password
+  })
 
   // Client lifecycle events
   broker.on('client', (client: Client) => {
@@ -65,13 +71,15 @@ export async function startBroker (portOverride?: number): Promise<StartedBroker
   const address = server.address()
   const port = typeof address === 'object' && address !== null ? address.port : requestedPort
 
-  clearStdout()
-  console.log(`Aedes is running on port ${port}`)
+  if (!opts.quiet) {
+    clearStdout()
+    console.log(`Aedes is running on port ${port}`)
+  }
 
   broker.publish(
     {
       cmd: 'publish',
-      topic: '💖 Happy Birthday! ☃️',
+      topic: BIRTHDAY_TOPIC,
       payload: Buffer.from(`${broker.id}, broker I am.`),
       qos: 0,
       dup: false,
@@ -80,16 +88,22 @@ export async function startBroker (portOverride?: number): Promise<StartedBroker
     () => {}
   )
 
+  let closed = false
+
   return {
     broker,
     server,
     port,
-    close: () =>
-      new Promise<void>((resolve, reject) => {
+    close: () => {
+      if (closed) return Promise.resolve()
+      closed = true
+
+      return new Promise<void>((resolve, reject) => {
         server.close(err => {
           if (err) return reject(err)
           broker.close(() => resolve())
         })
       })
+    }
   }
 }

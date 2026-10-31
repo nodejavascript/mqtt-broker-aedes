@@ -1,5 +1,0 @@
-{
-  "verbose": true,
-  "ext": "ts,js,json",
-  "ignore": [".git/*","node_modules/*","*.md","mydb/*","dist/*"]
-}
