@@ -312,8 +312,9 @@ npm test
 │   ├── integration/
 │   └── e2e/
 ├── docs/
-│   ├── mqtt-logo.png     # the MQTT mark used above
-│   └── mqtt-logo@2x.png  # the same, for retina displays
+│   ├── mqtt-logo.png              # the MQTT mark used above
+│   ├── mqtt-logo@2x.png           # the same, for retina displays
+│   └── github-social-preview.png  # 1280x640, for the repository's social preview
 ├── .github/workflows/
 │   ├── ci.yml            # typecheck, build, tests, production audit
 │   └── docker-publish.yml # GHCR image on push to master
@@ -339,6 +340,9 @@ npm test
   used here to say what the broker speaks, not to claim any endorsement — this project is an
   independent implementation over [Aedes](https://github.com/moscajs/aedes) and is not
   affiliated with OASIS.
+- `docs/github-social-preview.png` is the mark at GitHub's 2:1 social-preview size. GitHub has
+  no API for that setting, so it is uploaded once by hand under **Settings → General → Social
+  preview**, and this file is the source to upload.
 
 ## Upgrading from 1.x
 
